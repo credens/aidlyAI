@@ -1,0 +1,6 @@
+aidly-outreach-agent/
+node_modules/
+dist/
+.env
+.env.local
+npm-debug.log*
