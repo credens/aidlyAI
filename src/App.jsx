@@ -47,6 +47,8 @@ const navItems = [
   { label: "Contact", to: "/contact" },
 ];
 
+const contactEmail = "federico@aidlyai.com";
+
 const trustBullets = [
   { icon: ShieldCheck, text: "Secure & private — your data stays yours" },
   { icon: ClipboardList, text: "No new software to learn" },
@@ -1356,7 +1358,10 @@ function AuditForm({ compact = false }) {
       <div aria-live="polite" className="mt-4">
         {submitted && (
           <p className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-200">
-            Request received. We stored your audit request and will prepare the next-step summary.
+            Request received. We stored your audit request and will prepare the next-step summary. You can also email us directly at{" "}
+            <a className="underline decoration-emerald-200/60 underline-offset-4" href={`mailto:${contactEmail}`}>
+              {contactEmail}
+            </a>.
           </p>
         )}
       </div>
@@ -1425,6 +1430,15 @@ function ContactPage({ booking = false }) {
           </p>
           <div className="mt-8 grid gap-4">
             {[
+              [
+                "Email",
+                <a
+                  className="text-electric-200 underline decoration-electric-300/40 underline-offset-4 transition hover:text-white"
+                  href={`mailto:${contactEmail}`}
+                >
+                  {contactEmail}
+                </a>,
+              ],
               ["Response", "Within one business day"],
               ["Best fit", "Small businesses in the United States"],
               ["Launch target", "Most first systems live within 14 days"],
@@ -1464,8 +1478,11 @@ function LegalPage({ type }) {
               : "Services are scoped through a workflow audit, setup agreement and monthly support relationship. Customers retain ownership of their accounts, data and business processes."}
           </p>
           <p>
-            For formal legal requests, contact AidlyAI through the audit form and include the
-            topic in your message.
+            For formal legal requests, email{" "}
+            <a className="text-electric-200 underline decoration-electric-300/40 underline-offset-4" href={`mailto:${contactEmail}`}>
+              {contactEmail}
+            </a>{" "}
+            and include the topic in your message.
           </p>
         </div>
       </div>
@@ -1509,6 +1526,12 @@ function Footer() {
         <div className="md:text-right">
           <p className="text-base font-semibold text-white">Your business. Your data. Your AI helper.</p>
           <p className="mt-3 text-sm text-slate-400">AidlyAI.com</p>
+          <a
+            className="mt-2 inline-flex text-sm font-semibold text-electric-300 transition hover:text-white"
+            href={`mailto:${contactEmail}`}
+          >
+            {contactEmail}
+          </a>
           <p className="mt-4 text-sm text-slate-500">
             © 2025 AidlyAI, LLC. All rights reserved.
           </p>
