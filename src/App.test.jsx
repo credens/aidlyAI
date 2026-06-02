@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { AppRoutes, validateAuditForm } from "./App.jsx";
 
 function renderRoute(initialEntries = ["/"]) {
@@ -15,6 +15,7 @@ function renderRoute(initialEntries = ["/"]) {
 describe("AidlyAI site", () => {
   beforeEach(() => {
     localStorage.clear();
+    global.fetch = vi.fn(() => Promise.resolve({ ok: true }));
   });
 
   it("renders the professional home page with primary navigation", () => {
@@ -129,6 +130,10 @@ describe("AidlyAI site", () => {
     await user.click(within(form).getByRole("button", { name: /Submit audit request/i }));
 
     expect(await screen.findByText(/Request received/i)).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/audit-request",
+      expect.objectContaining({ method: "POST" })
+    );
     const stored = JSON.parse(localStorage.getItem("aidly-audit-requests"));
     expect(stored[0].company).toBe("Summit Contracting");
   });

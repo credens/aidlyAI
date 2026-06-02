@@ -48,7 +48,7 @@ const navItems = [
 ];
 
 const contactEmail = "federico@aidlyai.com";
-const auditWebhookUrl = import.meta.env.VITE_AUDIT_WEBHOOK_URL || "";
+const auditEndpoint = import.meta.env.VITE_AUDIT_ENDPOINT || "/api/audit-request";
 
 const trustBullets = [
   { icon: ShieldCheck, text: "Secure & private — your data stays yours" },
@@ -1276,18 +1276,17 @@ function storeAuditRequest(payload) {
 }
 
 async function deliverAuditRequest(payload) {
-  if (!auditWebhookUrl) {
-    return "local";
-  }
-
-  await fetch(auditWebhookUrl, {
+  const response = await fetch(auditEndpoint, {
     method: "POST",
-    mode: "no-cors",
     headers: {
-      "Content-Type": "text/plain;charset=utf-8",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
   });
+
+  if (!response.ok) {
+    throw new Error("Audit request failed");
+  }
 
   return "email";
 }
@@ -1416,7 +1415,7 @@ function AuditForm({ compact = false }) {
           <p className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-200">
             {submitted === "email"
               ? "Request received. Your audit request was sent to AidlyAI and we will reply within one business day."
-              : "Request received. The request was saved locally, but email delivery still needs to be configured."}{" "}
+              : "Request received. The request was saved locally as a backup."}{" "}
             You can also email us directly at{" "}
             <a className="underline decoration-emerald-200/60 underline-offset-4" href={`mailto:${contactEmail}`}>
               {contactEmail}
