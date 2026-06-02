@@ -48,6 +48,7 @@ const navItems = [
 ];
 
 const contactEmail = "federico@aidlyai.com";
+const auditWebhookUrl = import.meta.env.VITE_AUDIT_WEBHOOK_URL || "";
 
 const trustBullets = [
   { icon: ShieldCheck, text: "Secure & private — your data stays yours" },
@@ -1247,6 +1248,7 @@ const initialForm = {
   priority: "",
   timeline: "",
   message: "",
+  website: "",
   consent: false,
 };
 
@@ -1268,10 +1270,34 @@ function validateAuditForm(values) {
   return errors;
 }
 
+function storeAuditRequest(payload) {
+  const existing = JSON.parse(localStorage.getItem("aidly-audit-requests") || "[]");
+  localStorage.setItem("aidly-audit-requests", JSON.stringify([payload, ...existing]));
+}
+
+async function deliverAuditRequest(payload) {
+  if (!auditWebhookUrl) {
+    return "local";
+  }
+
+  await fetch(auditWebhookUrl, {
+    method: "POST",
+    mode: "no-cors",
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return "email";
+}
+
 function AuditForm({ compact = false }) {
   const [values, setValues] = useState(initialForm);
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(null);
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function updateField(event) {
     const { name, value, type, checked } = event.target;
@@ -1280,26 +1306,45 @@ function AuditForm({ compact = false }) {
       [name]: type === "checkbox" ? checked : value,
     }));
     setErrors((current) => ({ ...current, [name]: "" }));
+    setSubmitError("");
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     const nextErrors = validateAuditForm(values);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
-      setSubmitted(false);
+      setSubmitted(null);
+      return;
+    }
+
+    if (values.website.trim()) {
+      setSubmitted("email");
+      setValues(initialForm);
       return;
     }
 
     const payload = {
       ...values,
+      pageUrl: window.location.href,
       submittedAt: new Date().toISOString(),
     };
-    const existing = JSON.parse(localStorage.getItem("aidly-audit-requests") || "[]");
-    localStorage.setItem("aidly-audit-requests", JSON.stringify([payload, ...existing]));
-    setSubmitted(true);
-    setValues(initialForm);
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      storeAuditRequest(payload);
+      const deliveryMode = await deliverAuditRequest(payload);
+      setSubmitted(deliveryMode);
+      setValues(initialForm);
+    } catch (error) {
+      setSubmitted(null);
+      setSubmitError("We could not send the audit request. Please email us directly and we will help right away.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -1309,6 +1354,16 @@ function AuditForm({ compact = false }) {
       noValidate
       data-testid="audit-form"
     >
+      <input
+        type="text"
+        name="website"
+        value={values.website}
+        onChange={updateField}
+        className="hidden"
+        tabIndex="-1"
+        autoComplete="off"
+        aria-hidden="true"
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Full name" name="name" value={values.name} error={errors.name} onChange={updateField} />
         <Field label="Business email" name="email" type="email" value={values.email} error={errors.email} onChange={updateField} />
@@ -1350,18 +1405,30 @@ function AuditForm({ compact = false }) {
       {errors.consent && <p className="mt-2 text-sm text-red-300">{errors.consent}</p>}
       <button
         type="submit"
-        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-electric-500 px-5 py-3 text-sm font-semibold text-navy-950 shadow-glow transition hover:bg-electric-300 sm:w-auto"
+        disabled={isSubmitting}
+        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-md bg-electric-500 px-5 py-3 text-sm font-semibold text-navy-950 shadow-glow transition hover:bg-electric-300 disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
       >
-        Submit audit request
+        {isSubmitting ? "Sending request..." : "Submit audit request"}
         <ArrowRight size={16} />
       </button>
-      <div aria-live="polite" className="mt-4">
+      <div aria-live="polite" className="mt-4 space-y-3">
         {submitted && (
           <p className="rounded-md border border-emerald-300/25 bg-emerald-300/10 px-4 py-3 text-sm font-semibold text-emerald-200">
-            Request received. We stored your audit request and will prepare the next-step summary. You can also email us directly at{" "}
+            {submitted === "email"
+              ? "Request received. Your audit request was sent to AidlyAI and we will reply within one business day."
+              : "Request received. The request was saved locally, but email delivery still needs to be configured."}{" "}
+            You can also email us directly at{" "}
             <a className="underline decoration-emerald-200/60 underline-offset-4" href={`mailto:${contactEmail}`}>
               {contactEmail}
             </a>.
+          </p>
+        )}
+        {submitError && (
+          <p className="rounded-md border border-red-300/25 bg-red-300/10 px-4 py-3 text-sm font-semibold text-red-200">
+            {submitError}{" "}
+            <a className="underline decoration-red-200/60 underline-offset-4" href={`mailto:${contactEmail}`}>
+              {contactEmail}
+            </a>
           </p>
         )}
       </div>
